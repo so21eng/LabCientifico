@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eureka Lab - ¡Descubre la Ciencia Divertida!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#00ADF2',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Manifest para PWA -->
+    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22Eureka%20Lab%22,%22short_name%22:%22EurekaLab%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22#ffffff%22,%22theme_color%22:%22#00ADF2%22,%22icons%22:[{%22src%22:%22data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACAAQMAAAD58POIAAAABGdBTUEAALGPC/xhBQAAAAFzUkdCAK7OHOkAAAAgY0hSTQAAeiYAAICEAAD6AAAAgAAALAAAAA==%22,%22sizes%22:%22192x192%22,%22type%22:%22image/png%22}]}">
+    <!-- Service Worker simple para offline -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('data:application/javascript,' + encodeURIComponent(`
+                self.addEventListener('install', e => e.waitUntil(self.skipWaiting()));
+                self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => caches.match(e.request))));
+            `));
+        }
+    </script>
+    <style>
+        .card-casero { @apply bg-green-200 border-green-500; }
+        .card-intermedio { @apply bg-yellow-200 border-yellow-500; }
+        .card-avanzado { @apply bg-red-200 border-red-500; }
+        .particle { position: absolute; width: 5px; height: 5px; background: red; border-radius: 50%; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-100 to-purple-100 dark:from-gray-900 dark:to-gray-800 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col transition-colors">
+    <!-- Header llamativo -->
+    <header class="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6 shadow-2xl">
+        <div class="container mx-auto flex flex-col md:flex-row justify-between items-center">
+            <h1 class="text-4xl font-bold animate-pulse">🧪 Eureka Lab 🧪</h1>
+            <div class="text-xl mt-4 md:mt-0">
+                <div id="contador-completados" class="font-bold">Has completado 0/30 experimentos 🏅</div>
+                <div id="racha-diaria" class="font-bold">Racha: 0 días 🔥</div>
+                <div id="nivel-global" class="font-bold">Nivel: Principiante</div>
+            </div>
+            <button id="toggle-dark" class="bg-white text-purple-600 px-4 py-2 rounded-full font-bold shadow-lg hover:scale-110 transition">🌙 Modo Oscuro</button>
+        </div>
+    </header>
+    <!-- Navegación colorida -->
+    <nav class="bg-gradient-to-r from-green-500 to-blue-500 p-4 shadow-lg">
+        <div class="container mx-auto flex flex-wrap justify-center gap-4">
+            <button onclick="showSection('home')" class="bg-pink-600 hover:bg-pink-700 text-white px-6 py-3 rounded-full text-lg font-bold shadow-md hover:scale-105 transition">🏠 Home</button>
+            <button onclick="showSection('catalogo')" class="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-full text-lg font-bold shadow-md hover:scale-105 transition">📚 Catálogo</button>
+            <button onclick="showSection('quiz')" class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-full text-lg font-bold shadow-md hover:scale-105 transition">❓ Quiz</button>
+            <button onclick="showSection('adivina')" class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-full text-lg font-bold shadow-md hover:scale-105 transition">🔍 Adivina</button>
+            <button onclick="showSection('lab-virtual')" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-full text-lg font-bold shadow-md hover:scale-105 transition">🧑‍🔬 Lab Virtual</button>
+            <button onclick="showSection('tabla-periodica')" class="bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-3 rounded-full text-lg font-bold shadow-md hover:scale-105 transition">⚛️ Tabla Periódica</button>
+            <button onclick="showSection('ranking')" class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-full text-lg font-bold shadow-md hover:scale-105 transition">🏆 Ranking</button>
+            <button onclick="showSection('mis-fotos')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-full text-lg font-bold shadow-md hover:scale-105 transition">📸 Mis Fotos</button>
+        </div>
+    </nav>
+    <!-- Main -->
+    <main class="container mx-auto p-6 flex-grow">
+        <!-- Home / Desafío Diario -->
+        <section id="home">
+            <div id="desafio-diario" class="bg-gradient-to-r from-yellow-400 to-orange-500 p-8 rounded-2xl shadow-2xl text-center text-white text-2xl font-bold mb-8 animate-bounce"></div>
+            <h2 class="text-3xl font-bold text-center mb-8">¡Bienvenido a Eureka Lab! Descubre la magia de la ciencia 🧪✨</h2>
+        </section>
+        <!-- Catálogo -->
+        <section id="catalogo" class="hidden">
+            <h2 class="text-3xl font-bold text-center mb-6">Catálogo de Experimentos</h2>
+            <div class="flex flex-col md:flex-row gap-4 mb-6">
+                <input id="buscador" type="text" placeholder="🔍 Buscar experimento..." class="border-2 border-purple-500 rounded-full px-4 py-2 flex-grow">
+                <select id="filtro-nivel" class="border-2 border-purple-500 rounded-full px-4 py-2">
+                    <option value="">Todos los niveles</option>
+                    <option value="Casero">🟢 Casero</option>
+                    <option value="Intermedio">🟡 Intermedio</option>
+                    <option value="Avanzado">🔴 Avanzado</option>
+                </select>
+            </div>
+            <div id="lista-experimentos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </section>
+        <!-- Otras secciones placeholder mejorados -->
+        <section id="quiz" class="hidden text-center">
+            <h2 class="text-3xl font-bold mb-8">Quiz Científico ❓</h2>
+            <div id="quiz-contenido" class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl max-w-2xl mx-auto"></div>
+        </section>
+        <section id="adivina" class="hidden text-center">
+            <h2 class="text-3xl font-bold mb-8">Adivina el Experimento 🔍</h2>
+            <div id="adivina-contenido" class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl max-w-2xl mx-auto"></div>
+        </section>
+        <section id="lab-virtual" class="hidden">
+            <h2 class="text-3xl font-bold text-center mb-8">Laboratorio Virtual 🧑‍🔬</h2>
+            <div id="lab-lista" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+        </section>
+        <!-- NUEVA SECCIÓN: Tabla Periódica -->
+        <section id="tabla-periodica" class="hidden">
+            <h2 class="text-3xl font-bold text-center mb-8">Tabla Periódica Interactiva ⚛️</h2>
+            <div class="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-2xl max-w-7xl mx-auto">
+                <p class="text-center mb-6 text-lg font-medium">¡Explora todos los elementos! Haz clic en cualquiera para ver sus propiedades, historia, usos, orbitales y más.</p>
+                <iframe src="https://ptable.com/?lang=es" width="100%" height="800" class="rounded-xl border-4 border-purple-600 shadow-lg" allowfullscreen></iframe>
+                <p class="text-center mt-6 text-sm text-gray-600 dark:text-gray-400">Fuente: <a href="https://ptable.com" target="_blank" class="underline hover:text-purple-600">Ptable.com</a> – La tabla periódica más completa e interactiva</p>
+            </div>
+        </section>
+        <section id="ranking" class="hidden">
+            <h2 class="text-3xl font-bold text-center mb-8">Ranking de Científicos 🏆</h2>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div id="ranking-quiz" class="bg-gradient-to-b from-blue-400 to-blue-600 p-8 rounded-2xl shadow-2xl text-white"></div>
+                <div id="ranking-adivina" class="bg-gradient-to-b from-purple-400 to-purple-600 p-8 rounded-2xl shadow-2xl text-white"></div>
+            </div>
+        </section>
+        <section id="mis-fotos" class="hidden">
+            <h2 class="text-3xl font-bold text-center mb-8">Mis Fotos de Experimentos 📸</h2>
+            <input type="file" accept="image/*" id="subir-foto" class="mb-8 border-4 border-dashed border-purple-500 p-4 rounded-2xl">
+            <div id="galeria-fotos" class="grid grid-cols-2 md:grid-cols-4 gap-6"></div>
+        </section>
+    </main>
+    <!-- Modal detallado -->
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-70 hidden flex items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-2xl max-w-3xl w-full max-h-screen overflow-y-auto">
+            <button onclick="closeModal()" class="float-right text-3xl text-red-600 hover:text-red-800">&times;</button>
+            <div id="modal-contenido"></div>
+        </div>
+    </div>
+    <!-- Sonidos libres (Mixkit - libres de derechos) -->
+    <audio id="sound-correcto" src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3"></audio>
+    <audio id="sound-error" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
+    <audio id="sound-aplausos" src="https://assets.mixkit.co/sfx/preview/mixkit-small-crowd-applause-305.mp3"></audio>
+    <audio id="sound-explosion" src="https://assets.mixkit.co/sfx/preview/mixkit-distant-explosion-1301.mp3"></audio>
+    <audio id="sound-burbujas" src="https://assets.mixkit.co/sfx/preview/mixkit-bubbles-of-water-3003.mp3"></audio>
+    <script>
+        // 30 Experimentos completos (10 por nivel)
+        const experimentos = [
+            // Nivel Casero (10)
+            {id:1, nombre:"Volcán en Erupción", nivel:"Casero", emoji:"🌋", materiales:["Bicarbonato", "Vinagre", "Colorante rojo", "Botella pequeña", "Plastilina"], pasos:["1. Modela un volcán con plastilina alrededor de la botella.", "2. Pon bicarbonato dentro.", "3. Añade colorante y vinagre."], explicacion:"Reacción ácido-base produce CO₂ causando 'erupción'.", video:"hxfzuwjJ7mM", pistas:["Hace espuma roja", "Simula lava", "Usa cocina común"], precauciones:["Supervisión adulta", "No ingerir", "Al aire libre"], quizPregunta:"¿Qué gas se produce?", quizOpciones:["Oxígeno","CO₂","Hidrógeno","Nitrógeno"], quizCorrecta:1},
+            {id:2, nombre:"Globo Autoinflable", nivel:"Casero", emoji:"🎈", materiales:["Globo", "Botella", "Vinagre", "Bicarbonato"], pasos:["1. Vinagre en botella.", "2. Bicarbonato en globo.", "3. Une y deja caer."], explicacion:"CO₂ infla el globo.", video:"e92hp2i-DiI", pistas:["Se infla solo", "Sin soplar", "Reacción química"], precauciones:["No ingerir"], quizPregunta:"¿Por qué se infla?", quizOpciones:["Aire caliente","Gas CO₂","Magia","Vapor"], quizCorrecta:1},
+            {id:3, nombre:"Lámpara de Lava Casera", nivel:"Casero", emoji:"🫧", materiales:["Aceite", "Agua", "Colorante", "Tableta efervescente"], pasos:["1. Agua con colorante en vaso.", "2. Aceite encima.", "3. Añade tableta."], explicacion:"Densidad y reacción producen burbujas.", video:"ppdl_zRB9N8", pistas:["Burbujas suben y bajan", "Colores flotan", "Como lava"], precauciones:["No ingerir"], quizPregunta:"¿Por qué suben las burbujas?", quizOpciones:["Densidad","Gravedad","Calor","Magnetismo"], quizCorrecta:0},
+            {id:4, nombre:"Arco Iris en un Vaso", nivel:"Casero", emoji:"🌈", materiales:["Miel", "Jabón", "Agua", "Aceite", "Alcohol", "Colorantes"], pasos:["1. Verter capas cuidadosamente."], explicacion:"Diferentes densidades forman capas.", video:"46rIoI1ej_8", pistas:["Capas de colores", "No se mezclan", "Líquidos apilados"], precauciones:["Supervisión"], quizPregunta:"¿Qué causa las capas?", quizOpciones:["Temperatura","Densidad","Color","Sabor"], quizCorrecta:1},
+            {id:5, nombre:"Pimienta y Jabón Mágico", nivel:"Casero", emoji:"✨", materiales:["Plato con agua", "Pimienta", "Jabón"], pasos:["1. Esparce pimienta.", "2. Toca con jabón."], explicacion:"Tensión superficial rota.", video:"MygnbvQy02w", pistas:["Pimienta huye", "Agua y jabón", "Superficie"], precauciones:["No ingerir"], quizPregunta:"¿Qué propiedad cambia?", quizOpciones:["Densidad","Tensión superficial","Color","Temperatura"], quizCorrecta:1},
+            {id:6, nombre:"Huevo Rebotador", nivel:"Casero", emoji:"🥚", materiales:["Huevo", "Vinagre"], pasos:["1. Sumergir huevo en vinagre 24h."], explicacion:"Ácido disuelve cáscara de carbonato.", video:"PGiqbtYnrVg", pistas:["Huevo sin cáscara", "Rebota", "Vinagre"], precauciones:["No ingerir", "Supervisión"], quizPregunta:"¿Qué disuelve la cáscara?", quizOpciones:["Agua","Ácido","Base","Sal"], quizCorrecta:1},
+            {id:7, nombre:"Flor que Cambia Color", nivel:"Casero", emoji:"🌸", materiales:["Flor blanca", "Agua", "Colorante"], pasos:["1. Poner en agua coloreada."], explicacion:"Capilaridad transporta color.", video:"w_o0hUiZdVA", pistas:["Flor se tiñe", "Absorbe color", "Tallos"], precauciones:["Seguro"], quizPregunta:"¿Cómo sube el color?", quizOpciones:["Raíces","Capilaridad","Fotosíntesis","Gravedad"], quizCorrecta:1},
+            {id:8, nombre:"Cohete de Vinagre", nivel:"Casero", emoji:"🚀", materiales:["Botella", "Corcho", "Vinagre", "Bicarbonato"], pasos:["1. Bicarbonato en botella.", "2. Vinagre rápido y tapa."], explicacion:"Presión de gas lanza.", video:"qa3wQvHFN7k", pistas:["Vuela alto", "Reacción rápida", "Botella"], precauciones:["Al aire libre", "Supervisión"], quizPregunta:"¿Qué impulsa el cohete?", quizOpciones:["Fuego","Gas presión","Alas","Electricidad"], quizCorrecta:1},
+            {id:9, nombre:"Slime Casero", nivel:"Casero", emoji:"🟢", materiales:["Pegamento", "Bórax", "Agua"], pasos:["1. Mezclar y amasar."], explicacion:"Polímeros se entrecruzan.", video:"TV2HHpXGhYE", pistas:["Elástico y viscoso", "Hecho en casa", "Pegajoso"], precauciones:["No ingerir"], quizPregunta:"¿Qué es el slime?", quizOpciones:["Líquido","Sólido","Polímero no newtoniano","Gas"], quizCorrecta:2},
+            {id:10, nombre:"Tornado en Botella", nivel:"Casero", emoji:"🌪️", materiales:["Dos botellas", "Cinta", "Agua"], pasos:["1. Unir botellas.", "2. Girar."], explicacion:"Vórtice por movimiento.", video:"W0L6Sz90kcc", pistas:["Remolino de agua", "Dos botellas", "Gira"], precauciones:["Seguro"], quizPregunta:"¿Qué forma el tornado?", quizOpciones:["Calor","Movimiento circular","Presión","Magnetismo"], quizCorrecta:1},
+            // Nivel Intermedio (10)
+            {id:11, nombre:"Pasta de Dientes de Elefante", nivel:"Intermedio", emoji:"🦷", materiales:["Peróxido de hidrógeno", "Levadura", "Jabón", "Colorante"], pasos:["1. Mezclar y añadir levadura."], explicacion:"Descomposición catalítica libera oxígeno.", video:"htLP188TRqM", pistas:["Espuma gigante", "Como dentífrico", "Reacción rápida"], precauciones:["Guantes", "Supervisión adulta obligatoria"], quizPregunta:"¿Qué cataliza la reacción?", quizOpciones:["Levadura","Ácido","Calor","Luz"], quizCorrecta:0},
+            {id:12, nombre:"Cristales de Sal", nivel:"Intermedio", emoji:"🧂", materiales:["Sal", "Agua caliente", "Hilo", "Palo"], pasos:["1. Disolver sal en agua caliente.", "2. Suspender hilo."], explicacion:"Cristalización por evaporación.", video:"EwSziuC4HzI", pistas:["Cristales crecen", "Sal común", "Lento proceso"], precauciones:["Agua caliente"], quizPregunta:"¿Cómo crecen los cristales?", quizOpciones:["Calentamiento","Evaporación","Congelación","Mezcla"], quizCorrecta:1},
+            {id:13, nombre:"Batería de Limón", nivel:"Intermedio", emoji:"🍋", materiales:["Limones", "Clavos", "Cables", "Monedas"], pasos:["1. Insertar electrodos en limones.", "2. Conectar en serie."], explicacion:"Reacción electroquímica genera corriente.", video:"sXk2UZN1MP0", pistas:["Genera electricidad", "Fruta ácida", "Luces LED"], precauciones:["Cuidado con cortes"], quizPregunta:"¿Qué produce la corriente?", quizOpciones:["Ácido cítrico","Agua","Sal","Azúcar"], quizCorrecta:0},
+            {id:14, nombre:"Cromatografía de Colores", nivel:"Intermedio", emoji:"🖍️", materiales:["Marcadores", "Papel filtro", "Agua"], pasos:["1. Dibujar en papel.", "2. Sumergir en agua."], explicacion:"Separación por solubilidad.", video:"2X2X6P0V2k0", pistas:["Colores se separan", "Papel absorbe", "Tinta"], precauciones:["Seguro"], quizPregunta:"¿Qué separa los colores?", quizOpciones:["Gravedad","Solubilidad","Densidad","Temperatura"], quizCorrecta:1},
+            {id:15, nombre:"Densidad de Líquidos", nivel:"Intermedio", emoji:"🥤", materiales:["Aceite", "Agua", "Miel", "Colorantes"], pasos:["1. Verter en capas."], explicacion:"Densidades diferentes estratifican.", video:"46rIoI1ej_8", pistas:["Líquidos no mezclan", "Capas visibles", "Peso específico"], precauciones:["No ingerir"], quizPregunta:"¿Por qué forman capas?", quizOpciones:["Color","Densidad","Temperatura","Forma"], quizCorrecta:1},
+            {id:16, nombre:"Reacción de Iodo y Almidón", nivel:"Intermedio", emoji:"🕰️", materiales:["Almidón", "Iodo", "Vitamina C"], pasos:["1. Mezclar almidón e iodo.", "2. Añadir vitamina."], explicacion:"Complejo azul se decolora.", video:"5QqxwW0Eu48", pistas:["Reloj químico", "Cambio color", "Tiempo preciso"], precauciones:["Guantes"], quizPregunta:"¿Qué causa el cambio de color?", quizOpciones:["Oxidación","Reducción","Ácido","Base"], quizCorrecta:1},
+            {id:17, nombre:"Ósmosis con Papas", nivel:"Intermedio", emoji:"🥔", materiales:["Papas", "Agua salada", "Agua dulce"], pasos:["1. Cortar papas.", "2. Sumergir en soluciones."], explicacion:"Agua mueve por gradiente.", video:"xYWm_n3a_ak", pistas:["Papas cambian tamaño", "Agua entra/sale", "Concentración"], precauciones:["Seguro"], quizPregunta:"¿Qué es la ósmosis?", quizOpciones:["Difusión de agua","Evaporación","Reacción química","Fotosíntesis"], quizCorrecta:0},
+            {id:18, nombre:"Efecto Leidenfrost", nivel:"Intermedio", emoji:"💧", materiales:["Sartén caliente", "Agua"], pasos:["1. Calentar sartén.", "2. Gotear agua."], explicacion:"Vapor aisla gota.", video:"oYsB7wJxN1U", pistas:["Gota baila", "Calor extremo", "No se evapora rápido"], precauciones:["Supervisión, calor"], quizPregunta:"¿Por qué la gota flota?", quizOpciones:["Vapor","Gravedad","Magnetismo","Densidad"], quizCorrecta:0},
+            {id:19, nombre:"Fermentación de Levadura", nivel:"Intermedio", emoji:"🍞", materiales:["Levadura", "Azúcar", "Agua tibia"], pasos:["1. Mezclar.", "2. Observar burbujas."], explicacion:"Anaeróbica produce CO₂.", video:"Y6fzQ7zD4xE", pistas:["Burbujas gas", "Pan sube", "Microorganismos"], precauciones:["No ingerir crudo"], quizPregunta:"¿Qué gas produce la levadura?", quizOpciones:["Oxígeno","CO₂","Hidrógeno","Nitrógeno"], quizCorrecta:1},
+            {id:20, nombre:"Cristales Caseros", nivel:"Intermedio", emoji:"💎", materiales:["Sal o alumbre", "Agua caliente", "Hilo"], pasos:["1. Solución saturada.", "2. Suspender semilla."], explicacion:"Crecimiento por supersaturación.", video:"EwSziuC4HzI", pistas:["Crece cristales", "Lento", "Sal o azúcar"], precauciones:["Agua caliente cuidado"], quizPregunta:"¿Qué causa crecimiento?", quizOpciones:["Evaporación","Calor","Luz","Gravedad"], quizCorrecta:0},
+            // Nivel Avanzado (10)
+            {id:21, nombre:"Motor Eléctrico Simple", nivel:"Avanzado", emoji:"⚡", materiales:["Pila", "Cable", "Imán", "Clavo"], pasos:["1. Bobina en clavo.", "2. Conectar."], explicacion:"Electromagnetismo genera movimiento.", video:"VgBugjQjibg", pistas:["Gira solo", "Electricidad e imán", "Motor"], precauciones:["Cuidado electricidad"], quizPregunta:"¿Qué principio usa?", quizOpciones:["Gravedad","Electromagnetismo","Química","Óptica"], quizCorrecta:1},
+            {id:22, nombre:"Espectroscopio Casero", nivel:"Avanzado", emoji:"🌈", materiales:["CD", "Caja", "Tubos"], pasos:["1. Construir con CD como difractor."], explicacion:"Difracción de luz muestra espectro.", video:"p0M7kF0dT4U", pistas:["Ve colores luz", "Arco iris", "Ondas luminosas"], precauciones:["Cuidado cortes"], quizPregunta:"¿Qué separa la luz?", quizOpciones:["Refracción","Difracción","Reflexión","Absorción"], quizCorrecta:1},
+            {id:23, nombre:"Péndulo de Newton", nivel:"Avanzado", emoji:"🔵", materiales:["Bolas", "Hilos", "Soporte"], pasos:["1. Colgar bolas.", "2. Soltar una."], explicacion:"Conservación de momentum y energía.", video:"0j86cvLrDyM", pistas:["Bolas chocan", "Energía transfiere", "Física mecánica"], precauciones:["Seguro"], quizPregunta:"¿Qué se conserva?", quizOpciones:["Momentum","Temperatura","Color","Densidad"], quizCorrecta:0},
+            {id:24, nombre:"Generador de Van de Graaff", nivel:"Avanzado", emoji:"🔌", materiales:["Botella", "Cinta", "Motor"], pasos:["1. Construir esfera conductora."], explicacion:"Acumula carga estática.", video:"Z8d5sTL69FY", pistas:["Chispas", "Electricidad estática", "Pelo erizado"], precauciones:["Alta tensión"], quizPregunta:"¿Qué acumula?", quizOpciones:["Carga eléctrica","Agua","Gas","Calor"], quizCorrecta:0},
+            {id:25, nombre:"Reacción de Clock de Iodo", nivel:"Avanzado", emoji:"⏰", materiales:["Iodo", "Ácido", "Almidón"], pasos:["1. Mezclar reactivos."], explicacion:"Reacción oscilante por cinética.", video:"5QqxwW0Eu48", pistas:["Cambio color repentino", "Tiempo controlado", "Química compleja"], precauciones:["Guantes, supervisión"], quizPregunta:"¿Qué estudia esta reacción?", quizOpciones:["Cinética química","Biología","Física","Geología"], quizCorrecta:0},
+            {id:26, nombre:"Destilación Simple", nivel:"Avanzado", emoji:"🥃", materiales:["Agua salada", "Matraz", "Condensador"], pasos:["1. Hervir y condensar."], explicacion:"Separación por puntos de ebullición.", video:"dNs_zCUOa7g", pistas:["Purifica agua", "Vapor condensa", "Separación mezclas"], precauciones:["Calor, supervisión"], quizPregunta:"¿En qué se basa la destilación?", quizOpciones:["Punto de ebullición","Densidad","Color","Sabor"], quizCorrecta:0},
+            {id:27, nombre:"Efecto Fotoeléctrico", nivel:"Avanzado", emoji:"☀️", materiales:["Luz UV", "Electroscopio"], pasos:["1. Cargar y exponer a luz."], explicacion:"Luz libera electrones.", video:"kv7k2TQp15s", pistas:["Luz causa descarga", "Einstein explicó", "Quantum"], precauciones:["UV cuidado"], quizPregunta:"¿Qué libera la luz?", quizOpciones:["Electrones","Protones","Neutrones","Fotones"], quizCorrecta:0},
+            {id:28, nombre:"Síntesis de Aspirina", nivel:"Avanzado", emoji:"💊", materiales:["Ácido salicílico", "Anhídrido acético"], pasos:["1. Mezclar con catalizador."], explicacion:"Esterificación produce acetilsalicílico.", video:"Vq0oDGsDYis", pistas:["Medicamento común", "Reacción orgánica", "Ácido"], precauciones:["Químicos, guantes"], quizPregunta:"¿Qué tipo de reacción es?", quizOpciones:["Esterificación","Oxidación","Reducción","Polimerización"], quizCorrecta:0},
+            {id:29, nombre:"Electroforesis de ADN", nivel:"Avanzado", emoji:"🧬", materiales:["Gel agarosa", "Muestras ADN", "Voltaje"], pasos:["1. Preparar gel.", "2. Aplicar corriente."], explicacion:"Migración por carga y tamaño.", video:"2HgLpyWfIOY", pistas:["Separa fragmentos", "Biología molecular", "Gel"], precauciones:["Electricidad, supervisión"], quizPregunta:"¿Qué separa el ADN?", quizOpciones:["Tamaño y carga","Color","Densidad","Temperatura"], quizCorrecta:0},
+            {id:30, nombre:"Modelo Pulmones", nivel:"Avanzado", emoji:"🫁", materiales:["Botella", "Globos", "Pajitas"], pasos:["1. Construir diafragma con globo."], explicacion:"Simula inhalación por presión.", video:"MygnbvQy02w", pistas:["Respira solo", "Globos pulmones", "Diafragma"], precauciones:["Seguro"], quizPregunta:"¿Qué simula el globo inferior?", quizOpciones:["Corazón","Diafragma","Tráquea","Alveolos"], quizCorrecta:1}
+        ];
+        // LocalStorage
+        let completados = JSON.parse(localStorage.getItem('completados')) || [];
+        let favoritos = JSON.parse(localStorage.getItem('favoritos')) || [];
+        let puntos = parseInt(localStorage.getItem('puntos')) || 0;
+        let racha = parseInt(localStorage.getItem('racha')) || 0;
+        let ultimoDia = localStorage.getItem('ultimoDia') || '';
+        let scoresQuiz = JSON.parse(localStorage.getItem('scoresQuiz')) || [];
+        let scoresAdivina = JSON.parse(localStorage.getItem('scoresAdivina')) || [];
+        let fotos = JSON.parse(localStorage.getItem('fotos')) || [];
+        function playSound(id) { document.getElementById(id).play(); }
+        function actualizarHeader() {
+            document.getElementById('contador-completados').innerText = `Has completado ${completados.length}/30 experimentos 🏅`;
+            document.getElementById('racha-diaria').innerText = `Racha: ${racha} días 🔥`;
+            document.getElementById('nivel-global').innerText = puntos < 100 ? 'Principiante' : puntos < 300 ? 'Científico Junior' : 'Científico Loco 🧠';
+        }
+        function desafioDiario() {
+            const dia = new Date().getDate();
+            const exp = experimentos[dia % 30];
+            const div = document.getElementById('desafio-diario');
+            div.innerHTML = `<h3 class="text-4xl">¡Desafío Diario! ${exp.emoji} ${exp.nombre}</h3><p class="text-xl">¡Hazlo hoy para mantener tu racha! 🔥</p><button onclick="mostrarModal(experimentos.find(e=>e.id===${exp.id}))" class="bg-white text-orange-600 px-8 py-4 rounded-full text-2xl mt-4 shadow-lg hover:scale-110">¡Vamos!</button>`;
+        }
+        function showSection(sec) {
+            document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(sec).classList.remove('hidden');
+            if (sec === 'catalogo') cargarCatalogo();
+            if (sec === 'quiz') iniciarQuiz();
+            if (sec === 'adivina') iniciarAdivina();
+            if (sec === 'lab-virtual') cargarLabVirtual();
+            if (sec === 'ranking') cargarRanking();
+            if (sec === 'mis-fotos') cargarFotos();
+            if (sec === 'home') desafioDiario();
+        }
+        function cargarCatalogo() {
+            const lista = document.getElementById('lista-experimentos');
+            lista.innerHTML = '';
+            const bus = document.getElementById('buscador').value.toLowerCase();
+            const niv = document.getElementById('filtro-nivel').value;
+            experimentos.filter(e => e.nombre.toLowerCase().includes(bus) && (!niv || e.nivel === niv)).forEach(exp => {
+                const cardClass = exp.nivel === 'Casero' ? 'card-casero' : exp.nivel === 'Intermedio' ? 'card-intermedio' : 'card-avanzado';
+                const card = document.createElement('div');
+                card.className = `border-4 ${cardClass} p-6 rounded-2xl shadow-xl cursor-pointer hover:scale-105 transition transform`;
+                card.innerHTML = `<div class="text-6xl mb-4">${exp.emoji}</div><h3 class="text-2xl font-bold">${exp.nombre}</h3><p class="text-lg">${exp.nivel}</p>${completados.includes(exp.id) ? '<span class="text-green-600 text-xl">✔ Completado</span>' : ''}`;
+                card.onclick = () => mostrarModal(exp);
+                lista.appendChild(card);
+            });
+        }
+        function mostrarModal(exp) {
+            document.getElementById('modal').classList.remove('hidden');
+            const cont = document.getElementById('modal-contenido');
+            cont.innerHTML = `
+                <h2 class="text-4xl font-bold mb-4">${exp.emoji} ${exp.nombre}</h2>
+                <p class="text-xl mb-4"><strong>Nivel:</strong> ${exp.nivel}</p>
+                <p class="mb-4"><strong>Materiales:</strong> ${exp.materiales.join(', ')}</p>
+                <p class="mb-4"><strong>Pasos:</strong><ol class="list-decimal ml-8">${exp.pasos.map(p => `<li class="text-lg">${p}</li>`).join('')}</ol></p>
+                <p class="text-lg mb-4"><strong>Explicación científica:</strong> ${exp.explicacion}</p>
+                <p class="text-lg mb-4 text-red-600 font-bold"><strong>Precauciones:</strong> ${exp.precauciones.join(' • ')}</p>
+                <iframe class="w-full h-64 rounded-xl mb-4" src="https://www.youtube.com/embed/${exp.video.split('v=')[1] || exp.video}" allowfullscreen></iframe>
+                <div class="flex gap-4 mt-6">
+                    <button id="completar-btn" class="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-full text-xl shadow-lg hover:scale-110">¡Lo hice! 🏅</button>
+                    <button id="favorito-btn" class="bg-yellow-500 hover:bg-yellow-600 text-white px-8 py-4 rounded-full text-xl shadow-lg hover:scale-110">❤️ Favorito</button>
+                    <button onclick="navigator.share ? navigator.share({title: '${exp.nombre}', text: '¡Mira este experimento!'}) : navigator.clipboard.writeText('¡Hice ${exp.nombre} en Eureka Lab!')" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full text-xl shadow-lg hover:scale-110">Compartir 🚀</button>
+                </div>
+            `;
+            document.getElementById('completar-btn').onclick = () => {
+                if (!completados.includes(exp.id)) {
+                    completados.push(exp.id);
+                    localStorage.setItem('completados', JSON.stringify(completados));
+                    puntos += exp.nivel === 'Avanzado' ? 30 : exp.nivel === 'Intermedio' ? 20 : 10;
+                    localStorage.setItem('puntos', puntos);
+                    playSound('sound-aplausos');
+                    actualizarHeader();
+                    cargarCatalogo();
+                }
+            };
+        }
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+        // Lab Virtual con Canvas interactivo (ejemplos para primeros 10)
+        const animaciones = {};
+
+        class Particle {
+            constructor(x, y, vx, vy, color, size, life) {
+                this.x = x; this.y = y; this.vx = vx; this.vy = vy;
+                this.color = color; this.size = size; this.life = life; this.age = 0;
+            }
+            update() { this.x += this.vx; this.y += this.vy; this.vy += 0.15; this.age++; }
+            draw(ctx) {
+                ctx.globalAlpha = 1 - this.age / this.life;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            dead() { return this.age >= this.life; }
+        }
+
+        function cargarLabVirtual() {
+            const lista = document.getElementById('lab-lista');
+            lista.innerHTML = '';
+            experimentos.forEach(exp => {
+                const div = document.createElement('div');
+                div.className = 'bg-gradient-to-b from-cyan-400 to-blue-600 p-8 rounded-3xl shadow-2xl text-center text-white';
+                div.innerHTML = `
+                    <h3 class="text-3xl font-bold mb-4">${exp.emoji} ${exp.nombre} Virtual</h3>
+                    <canvas id="canvas-${exp.id}" width="400" height="300" class="bg-gray-900 rounded-xl mx-auto"></canvas>
+                    <button onclick="iniciarAnim(${exp.id})" class="mt-4 bg-white text-blue-600 px-6 py-3 rounded-full text-xl font-bold shadow-lg hover:scale-110 transition">¡Iniciar Simulación!</button>
+                `;
+                lista.appendChild(div);
+            });
+        }
+
+        function iniciarAnim(id) {
+            const canvas = document.getElementById(`canvas-${id}`);
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            let extra = { angle: 0, scale: 1, blobs: [], rocketY: 300 };
+
+            if (animaciones[id]) cancelAnimationFrame(animaciones[id]);
+
+            const loop = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                if (id === 1) { // Volcán
+                    playSound('sound-explosion');
+                    for (let i = 0; i < 6; i++) {
+                        particles.push(new Particle(200 + Math.random()*40-20, 260, Math.random()*6-3, -Math.random()*10-6, ['#ff4400','#ff8800','#ffff00'][Math.floor(Math.random()*3)], Math.random()*8+4, 90));
+                    }
+                } else if (id === 2) { // Globo
+                    playSound('sound-burbujas');
+                    extra.scale = Math.min(extra.scale + 0.015, 2.2);
+                    ctx.fillStyle = '#ff69b4';
+                    ctx.beginPath();
+                    ctx.arc(200, 150, 80 * extra.scale, 0, Math.PI*2);
+                    ctx.fill();
+                } else if (id === 3) { // Lámpara lava
+                    playSound('sound-burbujas');
+                    if (Math.random() < 0.1 && extra.blobs.length < 12) {
+                        extra.blobs.push({x: 100 + Math.random()*200, y: 300, r: 20 + Math.random()*30, vy: -0.8 - Math.random()*0.5});
+                    }
+                    extra.blobs.forEach(b => {
+                        b.y += b.vy;
+                        if (b.y < -b.r) b.y = 300 + b.r;
+                        ctx.fillStyle = `hsl(${Math.random()*360},100%,50%)`;
+                        ctx.beginPath();
+                        ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+                        ctx.fill();
+                    });
+                } else if (id === 8) { // Cohete
+                    playSound('sound-explosion');
+                    extra.rocketY = Math.max(extra.rocketY - 8, -100);
+                    ctx.fillStyle = '#gray';
+                    ctx.fillRect(190, extra.rocketY, 20, 60);
+                    particles.push(new Particle(200, extra.rocketY + 60, Math.random()*8-4, Math.random()*6+4, '#ff6600', Math.random()*6+3, 40));
+                } else if (id === 11) { // Pasta elefante
+                    playSound('sound-burbujas');
+                    for (let i = 0; i < 12; i++) {
+                        particles.push(new Particle(200 + Math.random()*60-30, 280, Math.random()*8-4, -Math.random()*12-4, '#ffffff', Math.random()*12+8, 120));
+                    }
+                } else if (id === 21) { // Motor
+                    extra.angle += 0.25;
+                    ctx.strokeStyle = '#ffff00';
+                    ctx.lineWidth = 12;
+                    ctx.beginPath();
+                    ctx.arc(200, 150, 90, extra.angle, extra.angle + Math.PI*1.5);
+                    ctx.stroke();
+                } else { // Genérico divertido
+                    playSound('sound-burbujas');
+                    for (let i = 0; i < 4; i++) {
+                        particles.push(new Particle(Math.random()*400, 300, Math.random()*6-3, -Math.random()*8, `hsl(${Math.random()*360},100%,60%)`, Math.random()*12+6, 100));
+                    }
+                }
+
+                particles = particles.filter(p => {
+                    p.update();
+                    p.draw(ctx);
+                    return !p.dead();
+                });
+
+                animaciones[id] = requestAnimationFrame(loop);
+            };
+            extra = { angle: 0, scale: 1, blobs: [], rocketY: 300 };
+            particles = [];
+            loop();
+            // Añade más animaciones simples para otros (burbujas, colores, etc.)
+        }
+        // Quiz mejorado con selección de nivel
+        function iniciarQuiz() {
+            const cont = document.getElementById('quiz-contenido');
+            cont.innerHTML = `
+                <select id="nivel-quiz" class="border-2 border-purple-500 rounded-full px-4 py-2 mb-4">
+                    <option value="Casero">🟢 Casero (10 pts por correcta)</option>
+                    <option value="Intermedio">🟡 Intermedio (20 pts por correcta)</option>
+                    <option value="Avanzado">🔴 Avanzado (30 pts por correcta)</option>
+                </select>
+                <button onclick="generarQuiz()" class="bg-purple-600 text-white px-8 py-4 rounded-full text-2xl shadow-lg hover:scale-110">¡Empezar Quiz! 🚀</button>
+            `;
+        }
+        function generarQuiz() {
+            const nivel = document.getElementById('nivel-quiz').value;
+            let score = 0;
+            let current = 0;
+            const preguntas = experimentos.filter(e => e.nivel === nivel);
+            const puntosPorCorrecta = nivel === 'Avanzado' ? 30 : nivel === 'Intermedio' ? 20 : 10;
+            const cont = document.getElementById('quiz-contenido');
+            const showPreg = () => {
+                if (current >= 10) {
+                    playSound('sound-aplausos');
+                    const nombre = prompt('¡Felicidades! Puntuación: ' + score + '. Ingresa tu nombre:');
+                    scoresQuiz.push({nombre, score, nivel});
+                    scoresQuiz.sort((a,b) => b.score - a.score);
+                    localStorage.setItem('scoresQuiz', JSON.stringify(scoresQuiz));
+                    cont.innerHTML = `<h3 class="text-4xl">¡Fin! ${score} pts 🏆</h3>`;
+                    cargarRanking();
+                    return;
+                }
+                const p = preguntas[current];
+                cont.innerHTML = `<h3 class="text-2xl mb-8">${p.quizPregunta}</h3><div class="grid grid-cols-2 gap-4">${p.quizOpciones.map((op,i) => `<button onclick="responder(${i}, ${p.quizCorrecta}, ${puntosPorCorrecta})" class="bg-blue-500 hover:bg-blue-600 text-white py-4 rounded-xl text-xl shadow-lg">${op}</button>`).join('')}</div>`;
+            };
+            window.responder = (sel, correcta, pts) => {
+                if (sel === correcta) { score += pts; playSound('sound-correcto'); } else playSound('sound-error');
+                current++;
+                showPreg();
+            };
+            showPreg();
+        }
+        // Adivina el Experimento con niveles y alternativas
+        function iniciarAdivina() {
+            const cont = document.getElementById('adivina-contenido');
+            cont.innerHTML = `
+                <select id="nivel-adivina" class="border-2 border-purple-500 rounded-full px-4 py-2 mb-4">
+                    <option value="Casero">🟢 Casero (10 pts por correcta)</option>
+                    <option value="Intermedio">🟡 Intermedio (20 pts por correcta)</option>
+                    <option value="Avanzado">🔴 Avanzado (30 pts por correcta)</option>
+                </select>
+                <button onclick="generarAdivina()" class="bg-purple-600 text-white px-8 py-4 rounded-full text-2xl shadow-lg hover:scale-110">¡Empezar Adivinanza! 🔍</button>
+            `;
+        }
+        function generarAdivina() {
+            const nivel = document.getElementById('nivel-adivina').value;
+            let score = 0;
+            let current = 0;
+            const adivinanzas = experimentos.filter(e => e.nivel === nivel);
+            const puntosPorCorrecta = nivel === 'Avanzado' ? 30 : nivel === 'Intermedio' ? 20 : 10;
+            const cont = document.getElementById('adivina-contenido');
+            const showAdiv = () => {
+                if (current >= 10) {
+                    playSound('sound-aplausos');
+                    const nombre = prompt('¡Felicidades! Puntuación: ' + score + '. Ingresa tu nombre:');
+                    scoresAdivina.push({nombre, score, nivel});
+                    scoresAdivina.sort((a,b) => b.score - a.score);
+                    localStorage.setItem('scoresAdivina', JSON.stringify(scoresAdivina));
+                    cont.innerHTML = `<h3 class="text-4xl">¡Fin! ${score} pts 🏆</h3>`;
+                    cargarRanking();
+                    return;
+                }
+                const a = adivinanzas[current];
+                // Generar opciones: el correcto y 3 random de otros experimentos del mismo nivel
+                const opciones = [a.nombre];
+                const otros = experimentos.filter(e => e.nivel === nivel && e.id !== a.id).sort(() => Math.random() - 0.5).slice(0,3).map(e => e.nombre);
+                opciones.push(...otros);
+                opciones.sort(() => Math.random() - 0.5);
+                const correcta = opciones.indexOf(a.nombre);
+                cont.innerHTML = `<h3 class="text-2xl mb-4">Pistas: ${a.pistas.join(' • ')}</h3><h3 class="text-2xl mb-8">¿Qué experimento es?</h3><div class="grid grid-cols-2 gap-4">${opciones.map((op,i) => `<button onclick="responderAdiv(${i}, ${correcta}, ${puntosPorCorrecta})" class="bg-purple-500 hover:bg-purple-600 text-white py-4 rounded-xl text-xl shadow-lg">${op}</button>`).join('')}</div>`;
+            };
+            window.responderAdiv = (sel, correcta, pts) => {
+                if (sel === correcta) { score += pts; playSound('sound-correcto'); } else playSound('sound-error');
+                current++;
+                showAdiv();
+            };
+            showAdiv();
+        }
+        function cargarRanking() {
+            // Top 3 con títulos
+            const titles = ['🏆 Maestro Científico Supremo', '🥈 Experto en Reacciones', '🥉 Genio de los Experimentos'];
+            document.getElementById('ranking-quiz').innerHTML = '<h3>Quiz</h3>' + scoresQuiz.slice(0,3).map((s,i) => `<p>${titles[i]} ${s.nombre}: ${s.score} (${s.nivel})</p>`).join('');
+            document.getElementById('ranking-adivina').innerHTML = '<h3>Adivina</h3>' + scoresAdivina.slice(0,3).map((s,i) => `<p>${titles[i]} ${s.nombre}: ${s.score} (${s.nivel})</p>`).join('');
+        }
+        function cargarFotos() {
+            const gal = document.getElementById('galeria-fotos');
+            gal.innerHTML = '';
+            fotos.forEach(src => {
+                const img = document.createElement('img');
+                img.src = src;
+                img.className = 'rounded-2xl shadow-xl hover:scale-110 transition';
+                gal.appendChild(img);
+            });
+        }
+        document.getElementById('subir-foto').onchange = e => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = ev => {
+                fotos.push(ev.target.result);
+                localStorage.setItem('fotos', JSON.stringify(fotos));
+                cargarFotos();
+            };
+            reader.readAsDataURL(file);
+        };
+        document.getElementById('toggle-dark').onclick = () => document.body.classList.toggle('dark');
+        // Init
+        actualizarHeader();
+        showSection('home');
+        document.getElementById('buscador').oninput = cargarCatalogo;
+        document.getElementById('filtro-nivel').onchange = cargarCatalogo;
+    </script>
+</body>
+</html>
